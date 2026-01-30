@@ -8,12 +8,12 @@ import { generateToken } from "../lib/utils.js";
 // ===============================
 // Signup a new user
 // ===============================
-export const signup = async (req, res) => {
-  const { fullName, email, password, bio } = req.body;
+ export const signup = async (req, res) => {
+  const { fullname, email, password, bio } = req.body;
 
   try {
-    if (!fullName || !email || !password || !bio) {
-      return res.json({ success: false, message: "Missing Details" });
+    if (!fullname || !email || !password) {
+      return res.json({ success: false, message: "Missing details" });
     }
 
     const existingUser = await User.findOne({ email });
@@ -25,11 +25,11 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = await User.create({
-      fullName,
+      fullname,
       email,
       password: hashedPassword,
       bio,
-      profilePic: null, // ✅ ensure consistent field
+      profilepic: "",
     });
 
     const token = generateToken(newUser._id);
@@ -38,10 +38,10 @@ export const signup = async (req, res) => {
       success: true,
       user: {
         id: newUser._id,
-        fullName: newUser.fullName,
+        fullName: newUser.fullname,
         email: newUser.email,
         bio: newUser.bio,
-        profilePic: newUser.profilePic,
+        profilePic: newUser.profilepic || null,
       },
       token,
       message: "Account created successfully",
@@ -75,10 +75,10 @@ export const login = async (req, res) => {
       success: true,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        fullName: user.fullname,
         email: user.email,
         bio: user.bio,
-        profilePic: user.profilePic || null, // ✅ always send it
+        profilePic: user.profilepic || null,
       },
       token,
       message: "Login successful",
@@ -101,10 +101,10 @@ export const checkauth = (req, res) => {
     success: true,
     user: {
       id: req.user._id,
-      fullName: req.user.fullName,
+      fullName: req.user.fullname,
       email: req.user.email,
       bio: req.user.bio,
-      profilePic: req.user.profilePic || null,
+      profilePic: req.user.profilepic || null,
     },
   });
 };
@@ -115,41 +115,58 @@ export const checkauth = (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { profilePic, bio, fullName } = req.body;
+    console.log("-> Update Profile Request Received");
+    console.log("   UserId:", req.user._id);
+    console.log("   Has ProfilePic:", !!profilePic);
+    
     const userId = req.user._id;
     let updatedUser;
 
     if (profilePic) {
-      const upload = await cloudinary.uploader.upload(profilePic);
+      let newProfileUrl = null;
+      try {
+        console.log("-> Uploading to Cloudinary...");
+        const upload = await cloudinary.uploader.upload(profilePic);
+        newProfileUrl = upload.secure_url;
+        console.log("-> Cloudinary Upload Success:", newProfileUrl);
+      } catch (e) {
+        console.log("CLOUDINARY UPLOAD ERROR:", e);
+        throw new Error("Cloudinary upload failed");
+      }
       updatedUser = await User.findByIdAndUpdate(
         userId,
-        { profilePic: upload.secure_url, bio, fullName },
+        { profilepic: newProfileUrl, bio, fullname: fullName },
         { new: true }
       ).select("-password");
     } else {
+      console.log("-> Updating without image");
       updatedUser = await User.findByIdAndUpdate(
         userId,
-        { bio, fullName },
+        { bio, fullname: fullName },
         { new: true }
       ).select("-password");
     }
 
     if (!updatedUser) {
+      console.log("-> User not found in DB");
       return res.json({ success: false, message: "User not found" });
     }
+
+    console.log("-> DB Update Success:", updatedUser.fullname);
 
     res.json({
       success: true,
       user: {
         id: updatedUser._id,
-        fullName: updatedUser.fullName,
+        fullName: updatedUser.fullname,
         email: updatedUser.email,
         bio: updatedUser.bio,
-        profilePic: updatedUser.profilePic || null,
+        profilePic: updatedUser.profilepic || null,
       },
       message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error(error.message);
+    console.error("UPDATE PROFILE ERROR:", error.message);
     res.json({ success: false, message: error.message });
   }
 };

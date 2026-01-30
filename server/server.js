@@ -1,53 +1,41 @@
 import express from "express";
-import "dotenv/config";
+import dotenv from "dotenv";
 import cors from "cors";
-import http from "http";
+import path from "path";
+
+import authRoutes from "./routes/userroutes.js";
+import messageRoutes from "./routes/messageroutes.js";
+
 import { connectDB } from "./lib/db.js";
-import userroutes from "./routes/userroutes.js";
-import messageRouter from "./routes/messageroutes.js";
-import { Server } from "socket.io";
+import { app, server } from "./lib/socket.js";
 
-const app = express();
-const web_server = http.createServer(app);
+dotenv.config();
 
-// initialise socket.io
-export const io = new Server(web_server, {
-  cors: { origin: "*" },
-});
+const PORT = process.env.PORT || 5001;
+const __dirname = path.resolve();
 
-// store online users { userid: socketid }
-export const usersocketmap = {};
+/* ------------------ MIDDLEWARE ------------------ */
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json({ limit: "50mb" })); // ✅ Increased limit for image uploads
+app.use(express.urlencoded({ limit: "50mb", extended: true })); // ✅ Also increase for urlencoded
 
-// socket.io connection handlers
-io.on("connection", (socket) => {
-  const userid = socket.handshake.query.userid;
-  console.log("user connected", userid);
+app.use("/api/auth", authRoutes);
+app.use("/api/messages", messageRoutes);
 
-  if (userid) usersocketmap[userid] = socket.id;
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/dist")));
 
-  // emit online users to all connected clients
-  io.emit("getonlineuser", Object.keys(usersocketmap));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../client", "dist", "index.html"));
+  });
+}
 
-  socket.on("disconnect", () => {
-    console.log("user disconnected", userid);
-    delete usersocketmap[userid];
-    io.emit("getonlineuser", Object.keys(usersocketmap));
+connectDB().then(() => {
+  server.listen(PORT, () => {
+    console.log("server is running on PORT:" + PORT);
+    console.log("-> Body limit set to 50mb");
   });
 });
-
-// setup for middleware
-app.use(express.json({ limit: "4mb" }));
-app.use(cors());
-
-// routes
-app.use("/api/status", (req, res) => res.send("server is live"));
-app.use("/api/auth", userroutes);
-app.use("/api/message", messageRouter);
-
-// connect DB
-await connectDB();
-
-const port = process.env.PORT || 5001;
-web_server.listen(port, () =>
-  console.log("server is running on port: " + port)
-);
