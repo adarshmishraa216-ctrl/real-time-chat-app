@@ -14,7 +14,7 @@ const SideBar = () => {
     setUnseenMessages,
   } = useContext(ChatContext);
 
-  const { logout, onlineuser } = useContext(AuthContext);
+  const { logout, onlineUser } = useContext(AuthContext);
   const [input, setinput] = useState("");
   const navigate = useNavigate();
 
@@ -26,7 +26,7 @@ const SideBar = () => {
 
   useEffect(() => {
     getUsers();
-  }, [onlineuser]);
+  }, [onlineUser]);
 
   return (
     <div
@@ -88,14 +88,14 @@ const SideBar = () => {
             }`}
           >
             <img
-              src={u?.profilePic || assets.avatar}
+              src={u?.profilePic || assets.avatar_icon}
               alt="user"
               className="w-[35px] aspect-[1/1] rounded-full"
             />
 
             <div className="flex flex-col leading-5">
               <p>{u.fullName}</p>
-              {onlineuser.includes(u._id) ? (
+              {onlineUser.includes(u._id) ? (
                 <span className="text-green-400 text-xs">online</span>
               ) : (
                 <span className="text-neutral-400 text-xs">offline</span>

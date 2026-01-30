@@ -11,10 +11,10 @@ const ChatContainer = () => {
     selectedUser,
     setSelectedUser,
     sendMessage,
-    getMessage,
+    getMessages,
   } = useContext(ChatContext);
 
-  const { authUser, onlineuser } = useContext(AuthContext);
+  const { authUser, onlineUser } = useContext(AuthContext);
 
   const scrollEnd = useRef();
   const [input, setInput] = useState("");
@@ -45,7 +45,7 @@ const ChatContainer = () => {
 
   useEffect(() => {
     if (selectedUser) {
-      getMessage(selectedUser._id);
+      getMessages(selectedUser._id);
     }
   }, [selectedUser]);
 
@@ -66,7 +66,7 @@ const ChatContainer = () => {
         />
         <p className="flex-1 text-lg text-white flex items-center gap-2">
           {selectedUser.fullName}
-          {onlineuser.includes(selectedUser._id) && (
+          {onlineUser.includes(selectedUser._id) && (
             <span className="w-2 h-2 rounded-full bg-green-500"></span>
           )}
         </p>

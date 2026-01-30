@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       } else {
         toast.error(data.message || "Update failed");
-        return { success: false };
+        return { success: false }; 
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
@@ -144,13 +144,13 @@ export const AuthProvider = ({ children }) => {
     if (!user || socket?.connected) return;
 
     const newSocket = io(backendurl, {
-      query: { userid: user.id },
+      query: { userId: user.id },
     });
 
     setSocket(newSocket);
 
-    newSocket.on("getonlineuser", (userids) => {
-      setOnlineUser(userids);
+    newSocket.on("getOnlineUsers", (userIds) => {
+      setOnlineUser(userIds);
     });
   };
 
